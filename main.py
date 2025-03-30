@@ -124,7 +124,7 @@ async def cmd_list_clients(message: types.Message):
                         f"Заметка: {notes}\n"
                         f"\n\n")
         else:
-            if (page - 1) * 5 + 4 <= len(clients):
+            if (page - 1) * 5 + 4 < len(clients):
                 for client in range((page-1)*5, (page-1)*5+5):
                     name = clients[client][0]
                     phone = clients[client][1]
@@ -147,7 +147,6 @@ async def cmd_list_clients(message: types.Message):
 
 
 async def pagination_clients(page, max_pages):
-    print(page, max_pages)
     if max_pages == 1:
         return InlineKeyboardMarkup(inline_keyboard=[])
     elif page == 1:
@@ -177,7 +176,7 @@ async def next_page(callback: types.CallbackQuery):
     page += 1
     keyboard = await pagination_clients(page, max_pages)
     msg = ''
-    if (page - 1) * 5 + 4 <= len(clients):
+    if (page - 1) * 5 + 4 < len(clients):
         for client in range((page - 1) * 5, (page - 1) * 5 + 5):
             name = clients[client][0]
             phone = clients[client][1]
@@ -204,7 +203,7 @@ async def prev_page(callback: types.CallbackQuery):
     page -= 1
     keyboard = await pagination_clients(page, max_pages)
     msg = ''
-    if (page - 1) * 5 + 4 <= len(clients):
+    if (page - 1) * 5 + 4 < len(clients):
         for client in range((page - 1) * 5, (page - 1) * 5 + 5):
             name = clients[client][0]
             phone = clients[client][1]
