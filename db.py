@@ -10,7 +10,7 @@ load_dotenv()
 async def register_user(telegram_id, username, first_name):
     try:
         conn = psycopg2.connect(os.getenv("LINK"))
-        print("Подключение установлено успешно.")
+        print("Подключение установлено успешно для добавления юзера")
 
         cursor = conn.cursor()
 
@@ -34,4 +34,23 @@ async def register_user(telegram_id, username, first_name):
     except Exception as e:
         print(f"Ошибка подключения: {e}")
         exit()
+
+# Функция для добавления клиента в БД
+async def add_client_to_db(businessman_id, name, phone, notes):
+    try:
+        conn = psycopg2.connect(os.getenv("LINK"))
+        print("Подключение установлено успешно для добавления клиента")
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO clients (businessman_id, name, phone, notes, create_at)
+            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+        """, (businessman_id, name, phone, notes))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Ошибка при добавлении клиента: {e}")
+        return False
 

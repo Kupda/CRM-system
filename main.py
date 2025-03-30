@@ -5,7 +5,8 @@ import asyncio
 import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
-from db import register_user
+from aiogram.fsm.context import FSMContext
+from db import register_user, add_client_to_db
 
 # Считываем токен из файла .env
 load_dotenv()
@@ -38,6 +39,48 @@ async def cmd_start(message: types.Message):
         await message.reply(f"Привет, {first_name}! Ты успешно зарегистрирован в базе данных.")
     else:
         await message.reply(f"Привет, {first_name}! Ты уже зарегистрирован в базе данных.")
+
+
+user_data = {}
+@dp.message(Command("add_client"))
+async def cmd_add_client(message: types.Message):
+    user_data[message.from_user.id] = {}
+    await message.answer("Введите имя клиента:")
+
+
+@dp.message()
+async def process_message(message: types.Message):
+    user_id = message.from_user.id
+
+    # Если пользователь еще не начал регистрацию — игнорируем
+    if user_id not in user_data:
+        return
+
+    user_step = len(user_data[user_id])  # Определяем, на каком шаге он
+
+    if user_step == 0:  # Имя
+        user_data[user_id]["name"] = message.text
+        await message.answer("Введите номер телефона клиента (пример: +79123456789):")
+
+    elif user_step == 1:  # Номер телефона
+        phone = message.text.strip()
+        user_data[user_id]["phone"] = phone
+        await message.answer("Введите заметку о клиенте (или '-' если нет):")
+
+    elif user_step == 2:  # Заметка
+        user_data[user_id]["notes"] = None if message.text == "-" else message.text
+        # Достаем данные
+        data = user_data.pop(user_id)
+        success = await add_client_to_db(
+            businessman_id=user_id,
+            name=data["name"],
+            phone=data["phone"],
+            notes=data["notes"]
+        )
+        if success:
+            await message.answer("Клиент успешно добавлен в базу данных!")
+        else:
+            await message.answer("Ошибка при добавлении клиента. Попробуйте ещё раз.")
 
 
 # Запуск процесса поллинга новых апдейтов
