@@ -1,10 +1,11 @@
 import os
 from dotenv import load_dotenv
 import psycopg2
+from psycopg2.extras import RealDictCursor
 
 
 load_dotenv()
-# Подключаемся к базе данных PostgreSQL
+PAGE_SIZE = 5
 
 # Функция для подключения к базе данных и регистрации пользователя
 async def register_user(telegram_id, username, first_name):
@@ -53,4 +54,29 @@ async def add_client_to_db(businessman_id, name, phone, notes):
     except Exception as e:
         print(f"Ошибка при добавлении клиента: {e}")
         return False
+
+
+# # Функция для асинхронного подключения и получения клиентов с пагинацией
+# async def get_clients_from_db(page: int):
+#     try:
+#         conn = psycopg2.connect(os.getenv("LINK"))
+#         print("Подключение установлено успешно для отправки клиентов")
+#         cursor = conn.cursor()
+#
+#         # Запрос с пагинацией
+#         query = """
+#         SELECT id, name, phone, notes, create_at
+#         FROM clients
+#         ORDER BY create_at DESC
+#         LIMIT %s OFFSET %s
+#         """
+#         cursor.execute(query, (PAGE_SIZE, (page - 1) * PAGE_SIZE))
+#
+#         clients = cursor.fetchall()
+#         cursor.close()
+#         conn.close()
+#         return clients
+#     except Exception as e:
+#         print(f"Error while fetching clients: {e}")
+#         return []
 
