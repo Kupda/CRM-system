@@ -5,7 +5,6 @@ from psycopg2.extras import RealDictCursor
 
 
 load_dotenv()
-PAGE_SIZE = 5
 
 # Функция для подключения к базе данных и регистрации пользователя
 async def register_user(telegram_id, username, first_name):
@@ -56,27 +55,27 @@ async def add_client_to_db(businessman_id, name, phone, notes):
         return False
 
 
-# # Функция для асинхронного подключения и получения клиентов с пагинацией
-# async def get_clients_from_db(page: int):
-#     try:
-#         conn = psycopg2.connect(os.getenv("LINK"))
-#         print("Подключение установлено успешно для отправки клиентов")
-#         cursor = conn.cursor()
-#
-#         # Запрос с пагинацией
-#         query = """
-#         SELECT id, name, phone, notes, create_at
-#         FROM clients
-#         ORDER BY create_at DESC
-#         LIMIT %s OFFSET %s
-#         """
-#         cursor.execute(query, (PAGE_SIZE, (page - 1) * PAGE_SIZE))
-#
-#         clients = cursor.fetchall()
-#         cursor.close()
-#         conn.close()
-#         return clients
-#     except Exception as e:
-#         print(f"Error while fetching clients: {e}")
-#         return []
+# Функция для асинхронного подключения и получения клиентов с пагинацией
+async def get_clients_from_db(businessman_id):
+    try:
+        conn = psycopg2.connect(os.getenv("LINK"))
+        print("Подключение установлено успешно для отправки клиентов")
+        cursor = conn.cursor()
+
+        # Запрос с пагинацией
+        query = """
+        SELECT name, phone, notes
+        FROM clients
+        WHERE businessman_id = %s
+        ORDER BY create_at DESC
+        """
+        cursor.execute(query, (businessman_id,))
+
+        clients = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return clients
+    except Exception as e:
+        print(f"Error while fetching clients: {e}")
+        return []
 

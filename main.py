@@ -9,7 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from db import register_user, add_client_to_db
+from db import register_user, add_client_to_db, get_clients_from_db
 
 # Считываем токен из файла .env
 load_dotenv()
@@ -98,6 +98,132 @@ async def process_notes(message: types.Message, state: FSMContext):
         await message.answer("Произошла ошибка при добавлении клиента.")
 
     await state.clear()
+
+# Команда /list_clients
+@router.message(Command("list_clients"))
+async def cmd_list_clients(message: types.Message):
+    global page, clients, max_pages
+    user = message.from_user
+    page = 1
+    clients = await get_clients_from_db(user.id)
+    msg = ""
+    if len(clients) == 0:
+        msg = "У вас нет клиентов"
+    else:
+        if len(clients) % 5 == 0:
+            max_pages = len(clients) / 5
+        else:
+            max_pages = (len(clients) // 5) + 1
+        if max_pages == 1:
+            for client in clients:
+                name = client[0]
+                phone = client[1]
+                notes = client[2]
+                msg += (f"Имя клиента: {name}\n"
+                        f"Телефон: {phone}\n"
+                        f"Заметка: {notes}\n"
+                        f"\n\n")
+        else:
+            if (page - 1) * 5 + 4 <= len(clients):
+                for client in range((page-1)*5, (page-1)*5+5):
+                    name = clients[client][0]
+                    phone = clients[client][1]
+                    notes = clients[client][2]
+                    msg += (f"Имя клиента: {name}\n"
+                            f"Телефон: {phone}\n"
+                            f"Заметка: {notes}\n"
+                            f"\n\n")
+            else:
+                for client in range((page-1)*5, len(clients)):
+                    name = clients[client][0]
+                    phone = clients[client][1]
+                    notes = clients[client][2]
+                    msg += (f"Имя клиента: {name}\n"
+                            f"Телефон: {phone}\n"
+                            f"Заметка: {notes}\n"
+                            f"\n\n")
+        keyboard = await pagination_clients(page, max_pages)
+    await message.answer(msg, reply_markup=keyboard)
+
+
+async def pagination_clients(page, max_pages):
+    print(page, max_pages)
+    if max_pages == 1:
+        return InlineKeyboardMarkup(inline_keyboard=[])
+    elif page == 1:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="След. страница", callback_data="next_page")]
+            ]
+        )
+    elif page != 1 and max_pages > page:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Пред. страница", callback_data="prev_page")],
+                [InlineKeyboardButton(text="След. страница", callback_data="next_page")]
+            ]
+        )
+    elif page == max_pages:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Пред. страница", callback_data="prev_page")]
+            ]
+        )
+
+
+@router.callback_query(lambda c: c.data == "next_page")
+async def next_page(callback: types.CallbackQuery):
+    global page
+    page += 1
+    keyboard = await pagination_clients(page, max_pages)
+    msg = ''
+    if (page - 1) * 5 + 4 <= len(clients):
+        for client in range((page - 1) * 5, (page - 1) * 5 + 5):
+            name = clients[client][0]
+            phone = clients[client][1]
+            notes = clients[client][2]
+            msg += (f"Имя клиента: {name}\n"
+                    f"Телефон: {phone}\n"
+                    f"Заметка: {notes}\n"
+                    f"\n\n")
+    else:
+        for client in range((page - 1) * 5, len(clients)):
+            name = clients[client][0]
+            phone = clients[client][1]
+            notes = clients[client][2]
+            msg += (f"Имя клиента: {name}\n"
+                    f"Телефон: {phone}\n"
+                    f"Заметка: {notes}\n"
+                    f"\n\n")
+    await callback.message.edit_text(msg, reply_markup=keyboard)
+
+# Обработчик нажатия на кнопку "Изменить текст"
+@router.callback_query(lambda c: c.data == "prev_page")
+async def prev_page(callback: types.CallbackQuery):
+    global page
+    page -= 1
+    keyboard = await pagination_clients(page, max_pages)
+    msg = ''
+    if (page - 1) * 5 + 4 <= len(clients):
+        for client in range((page - 1) * 5, (page - 1) * 5 + 5):
+            name = clients[client][0]
+            phone = clients[client][1]
+            notes = clients[client][2]
+            msg += (f"Имя клиента: {name}\n"
+                    f"Телефон: {phone}\n"
+                    f"Заметка: {notes}\n"
+                    f"\n\n")
+    else:
+        for client in range((page - 1) * 5, len(clients)):
+            name = clients[client][0]
+            phone = clients[client][1]
+            notes = clients[client][2]
+            msg += (f"Имя клиента: {name}\n"
+                    f"Телефон: {phone}\n"
+                    f"Заметка: {notes}\n"
+                    f"\n\n")
+    await callback.message.edit_text(msg, reply_markup=keyboard)
+
 
 # Запуск процесса поллинга новых апдейтов
 async def main():
