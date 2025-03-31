@@ -10,8 +10,6 @@ load_dotenv()
 async def register_user(telegram_id, username, first_name):
     try:
         conn = psycopg2.connect(os.getenv("LINK"))
-        print("Подключение установлено успешно для добавления юзера")
-
         cursor = conn.cursor()
 
         # Проверяем, зарегистрирован ли уже пользователь
@@ -32,14 +30,13 @@ async def register_user(telegram_id, username, first_name):
         return True
 
     except Exception as e:
-        print(f"Ошибка подключения: {e}")
+        print(f"Error 1: {e}")
         exit()
 
 # Функция для добавления клиента в БД
 async def add_client_to_db(businessman_id, name, phone, notes):
     try:
         conn = psycopg2.connect(os.getenv("LINK"))
-        print("Подключение установлено успешно для добавления клиента")
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO clients (businessman_id, name, phone, notes, create_at)
@@ -51,7 +48,7 @@ async def add_client_to_db(businessman_id, name, phone, notes):
         conn.close()
         return True
     except Exception as e:
-        print(f"Ошибка при добавлении клиента: {e}")
+        print(f"Error 2: {e}")
         return False
 
 
@@ -59,7 +56,6 @@ async def add_client_to_db(businessman_id, name, phone, notes):
 async def get_clients_from_db(businessman_id):
     try:
         conn = psycopg2.connect(os.getenv("LINK"))
-        print("Подключение установлено успешно для отправки клиентов")
         cursor = conn.cursor()
 
         # Запрос с пагинацией
@@ -76,6 +72,21 @@ async def get_clients_from_db(businessman_id):
         conn.close()
         return clients
     except Exception as e:
-        print(f"Error while fetching clients: {e}")
+        print(f"Error 3: {e}")
+        return []
+
+async def delete_clients_from_db(businessman_id):
+    try:
+        conn = psycopg2.connect(os.getenv("LINK"))
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM clients WHERE businessman_id = %s;", (businessman_id,))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error 4: {e}")
         return []
 

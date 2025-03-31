@@ -9,7 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from db import register_user, add_client_to_db, get_clients_from_db
+from db import *
 
 # Считываем токен из файла .env
 load_dotenv()
@@ -102,13 +102,14 @@ async def process_notes(message: types.Message, state: FSMContext):
 # Команда /list_clients
 @router.message(Command("list_clients"))
 async def cmd_list_clients(message: types.Message):
-    global page, clients, max_pages
+    global page, clients, max_pages, i, keyboard
     user = message.from_user
     page = 1
     clients = await get_clients_from_db(user.id)
+    i = len(clients) + ((page - 1) * 5)
     msg = ""
     if len(clients) == 0:
-        msg = "У вас нет клиентов"
+        await message.answer("У вас нет клиентов")
     else:
         if len(clients) % 5 == 0:
             max_pages = len(clients) / 5
@@ -119,31 +120,40 @@ async def cmd_list_clients(message: types.Message):
                 name = client[0]
                 phone = client[1]
                 notes = client[2]
+                index = i
                 msg += (f"Имя клиента: {name}\n"
                         f"Телефон: {phone}\n"
                         f"Заметка: {notes}\n"
+                        f"Номер клиента: {index}\n"
                         f"\n\n")
+                i -= 1
         else:
             if (page - 1) * 5 + 4 < len(clients):
                 for client in range((page-1)*5, (page-1)*5+5):
                     name = clients[client][0]
                     phone = clients[client][1]
                     notes = clients[client][2]
+                    index = i
                     msg += (f"Имя клиента: {name}\n"
                             f"Телефон: {phone}\n"
                             f"Заметка: {notes}\n"
+                            f"Номер клиента: {index}\n"
                             f"\n\n")
+                    i -= 1
             else:
                 for client in range((page-1)*5, len(clients)):
                     name = clients[client][0]
                     phone = clients[client][1]
                     notes = clients[client][2]
+                    index = i
                     msg += (f"Имя клиента: {name}\n"
                             f"Телефон: {phone}\n"
                             f"Заметка: {notes}\n"
+                            f"Номер клиента: {index}\n"
                             f"\n\n")
+                    i -= 1
         keyboard = await pagination_clients(page, max_pages)
-    await message.answer(msg, reply_markup=keyboard)
+        await message.answer(msg, reply_markup=keyboard)
 
 
 async def pagination_clients(page, max_pages):
@@ -174,6 +184,7 @@ async def pagination_clients(page, max_pages):
 async def next_page(callback: types.CallbackQuery):
     global page
     page += 1
+    i = len(clients) - ((page-1)*5)
     keyboard = await pagination_clients(page, max_pages)
     msg = ''
     if (page - 1) * 5 + 4 < len(clients):
@@ -181,26 +192,33 @@ async def next_page(callback: types.CallbackQuery):
             name = clients[client][0]
             phone = clients[client][1]
             notes = clients[client][2]
+            index = i
             msg += (f"Имя клиента: {name}\n"
                     f"Телефон: {phone}\n"
                     f"Заметка: {notes}\n"
+                    f"Номер клиента: {index}\n"
                     f"\n\n")
+            i -= 1
     else:
         for client in range((page - 1) * 5, len(clients)):
             name = clients[client][0]
             phone = clients[client][1]
             notes = clients[client][2]
+            index = i
             msg += (f"Имя клиента: {name}\n"
                     f"Телефон: {phone}\n"
                     f"Заметка: {notes}\n"
+                    f"Номер клиента: {index}\n"
                     f"\n\n")
+            i -= 1
     await callback.message.edit_text(msg, reply_markup=keyboard)
 
-# Обработчик нажатия на кнопку "Изменить текст"
+
 @router.callback_query(lambda c: c.data == "prev_page")
 async def prev_page(callback: types.CallbackQuery):
     global page
     page -= 1
+    i = len(clients) - ((page - 1) * 5)
     keyboard = await pagination_clients(page, max_pages)
     msg = ''
     if (page - 1) * 5 + 4 < len(clients):
@@ -208,20 +226,50 @@ async def prev_page(callback: types.CallbackQuery):
             name = clients[client][0]
             phone = clients[client][1]
             notes = clients[client][2]
+            index = i
             msg += (f"Имя клиента: {name}\n"
                     f"Телефон: {phone}\n"
                     f"Заметка: {notes}\n"
+                    f"Номер клиента: {index}\n"
                     f"\n\n")
+            i -= 1
     else:
         for client in range((page - 1) * 5, len(clients)):
             name = clients[client][0]
             phone = clients[client][1]
             notes = clients[client][2]
+            index = i
             msg += (f"Имя клиента: {name}\n"
                     f"Телефон: {phone}\n"
                     f"Заметка: {notes}\n"
+                    f"Номер клиента: {index}\n"
                     f"\n\n")
+            i -= 1
     await callback.message.edit_text(msg, reply_markup=keyboard)
+
+
+# Команда /clear_clients
+@router.message(Command("clear_clients"))
+async def cmd_clear_clients(message: types.Message):
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Да", callback_data="clear_clients1"),
+             InlineKeyboardButton(text="Нет", callback_data="cancel_clear_clients")]
+        ]
+    )
+    await message.answer("Вы уверены, что хотите удалить базу данных всех ваших клиентов?",
+                         reply_markup=keyboard)
+
+
+@router.callback_query(lambda c: c.data == "clear_clients1")
+async def clear_clients(callback: types.CallbackQuery):
+    businessman_id = callback.from_user.id
+    await delete_clients_from_db(businessman_id)
+    await callback.message.edit_text("База данных клиентов была очищена")
+
+@router.callback_query(lambda c: c.data == "cancel_clear_clients")
+async def cancel_clear_clients(callback: types.CallbackQuery):
+    await callback.message.edit_text("Действие отменено")
 
 
 # Запуск процесса поллинга новых апдейтов
