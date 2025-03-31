@@ -90,3 +90,23 @@ async def delete_clients_from_db(businessman_id):
         print(f"Error 4: {e}")
         return []
 
+async def get_ids_from_db(businessman_id):
+    try:
+        conn = psycopg2.connect(os.getenv("LINK"))
+        cursor = conn.cursor()
+
+        query = """
+                SELECT id
+                FROM clients
+                WHERE businessman_id = %s
+                ORDER BY create_at DESC
+                """
+        cursor.execute(query, (businessman_id,))
+        client_ids = [row[0] for row in cursor.fetchall()]
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return client_ids
+    except Exception as e:
+        print(f"Error 4: {e}")
+        return []

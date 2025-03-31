@@ -272,6 +272,33 @@ async def cancel_clear_clients(callback: types.CallbackQuery):
     await callback.message.edit_text("Действие отменено")
 
 
+@router.message(Command("edit_client"))
+async def cmd_edit_client(message: types.Message):
+    businessman_id = message.from_user.id
+    args = message.text.split()  # Разбиваем сообщение на части
+    if len(args) < 2:  # Проверяем, есть ли параметр
+        await message.reply("Вы не указали параметр! Пример: /edit_client 3")
+        return
+
+    param = args[1]  # Получаем параметр (например, число 3)
+
+    if not param.isdigit():  # Проверяем, что параметр — число
+        await message.reply("Ошибка! Параметр должен быть числом.")
+        return
+
+    ids = await get_ids_from_db(businessman_id)
+    ids = ids[::-1]
+    await message.reply(str(ids[int(param)-1]))
+
+
+
+# async def process_edit_client(message: types.Message):
+
+
+
+# @router.callback_query(lambda c: c.data == "next_page")
+
+
 # Запуск процесса поллинга новых апдейтов
 async def main():
     dispatcher = Dispatcher(storage=storage)
