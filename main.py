@@ -32,6 +32,7 @@ except Exception as e:
     print(f"Ошибка подключения: {e}")
     exit()
 
+
 # Хэндлер на команду /start
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -98,6 +99,7 @@ async def process_notes(message: types.Message, state: FSMContext):
         await message.answer("Произошла ошибка при добавлении клиента.")
 
     await state.clear()
+
 
 # Команда /list_clients
 @router.message(Command("list_clients"))
@@ -267,6 +269,7 @@ async def clear_clients(callback: types.CallbackQuery):
     await delete_clients_from_db(businessman_id)
     await callback.message.edit_text("База данных клиентов была очищена")
 
+
 @router.callback_query(lambda c: c.data == "cancel_clear_clients")
 async def cancel_clear_clients(callback: types.CallbackQuery):
     await callback.message.edit_text("Действие отменено")
@@ -291,14 +294,8 @@ async def cmd_edit_client(message: types.Message):
     await message.reply(str(ids[int(param)-1]))
 
 
-
 # async def process_edit_client(message: types.Message):
-
-
-
 # @router.callback_query(lambda c: c.data == "next_page")
-
-
 # Запуск процесса поллинга новых апдейтов
 async def main():
     dispatcher = Dispatcher(storage=storage)
